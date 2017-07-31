@@ -1,6 +1,10 @@
 pipeline {
   agent any
 
+  environment {
+    MAJOR_VERSION = 1
+  }
+
   stages {
     stage('build') {
       steps {
@@ -35,6 +39,25 @@ pipeline {
         sh 'git merge development'
         echo "Git Push to Origin"
         sh 'git push origin master'
+      }
+      post {
+        success {
+          emailext(
+            subject: "${env.JOB_NAME} [${env.BUILD_NUMBER}] Development Promoted to Master",
+            body: """<p>'${env.JOB_NAME} [${env.BUILD_NUMBER}]' Development Promoted to Master":</p>
+            <p>Check console output at <a href='${env.BUILD_URL}'>${env.JOB_NAME} [${env.BUILD_NUMBER}]</a></p>""",
+            to: "brandon@linuxacademy.com"
+          )
+        }
+      }
+    }
+    stage('Tagging the Release') {
+      when {
+        branch 'master'
+      }
+      steps {
+        sh "git tag rectangle-${env.MAJOR_VERSION}.${BUILD_NUMBER}"
+        sh "git push origin rectangle-${env.MAJOR_VERSION}.${BUILD_NUMBER}"
       }
     }
   }
